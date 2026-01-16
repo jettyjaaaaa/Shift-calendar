@@ -10,10 +10,11 @@ const periods: ShiftPeriod[] = ["morning", "afternoon", "night"];
 const colors: ShiftColor[] = ["green", "blue", "yellow", "orange", "pink", "white"];
 
 type Draft = {
-  day_type: DayType;              // shift/off/leave
-  color: ShiftColor | null;       // only when shift
-  is_ot: boolean;                 // only when shift
-  swapped: boolean;               // only when shift
+  enabled: boolean;               // ✅ ใหม่: ช่วงนี้เลือกแล้วไหม
+  day_type: DayType;              // shift/off/leave (ใช้เมื่อ enabled=true)
+  color: ShiftColor | null;
+  is_ot: boolean;
+  swapped: boolean;
   swapped_with: string;
   note: string;
 };
@@ -83,7 +84,7 @@ function CenterMode({
   value,
   onChange,
 }: {
-  value: DayType; // shift/off/leave  (ทั้งวัน)
+  value: DayType; // shift/off/leave (ทั้งวัน)
   onChange: (v: DayType) => void;
 }) {
   const btn = (v: DayType, label: string) => (
@@ -129,16 +130,14 @@ export function EditSheet({
 
   const [active, setActive] = useState<ShiftPeriod>("morning");
   const [saving, setSaving] = useState(false);
-
-  const [allDayType, setAllDayType] = useState<DayType>("shift"); // ✅ ปุ่มกลางทั้งวัน
+  const [allDayType, setAllDayType] = useState<DayType>("shift");
 
   const [drafts, setDrafts] = useState<Record<ShiftPeriod, Draft>>(() => ({
-    morning: { day_type: "shift", color: "green", is_ot: false, swapped: false, swapped_with: "", note: "" },
-    afternoon: { day_type: "shift", color: "blue", is_ot: false, swapped: false, swapped_with: "", note: "" },
-    night: { day_type: "shift", color: "yellow", is_ot: false, swapped: false, swapped_with: "", note: "" },
+    morning: { enabled: false, day_type: "shift", color: "green", is_ot: false, swapped: false, swapped_with: "", note: "" },
+    afternoon: { enabled: false, day_type: "shift", color: "blue", is_ot: false, swapped: false, swapped_with: "", note: "" },
+    night: { enabled: false, day_type: "shift", color: "yellow", is_ot: false, swapped: false, swapped_with: "", note: "" },
   }));
 
-  // โหลดข้อมูลเดิมเมื่อเปลี่ยนวัน
   useEffect(() => {
     if (!dateISO) return;
 
@@ -146,6 +145,7 @@ export function EditSheet({
     for (const p of periods) {
       const ex = existingMap.get(p);
       next[p] = {
+        enabled: !!ex,
         day_type: ex?.day_type ?? "shift",
         color: (ex?.color ?? "green") as ShiftColor | null,
         is_ot: ex?.is_ot ?? false,
@@ -153,6 +153,7 @@ export function EditSheet({
         swapped_with: ex?.swapped_with ?? "",
         note: ex?.note ?? "",
       };
+
       if (next[p].day_type !== "shift") {
         next[p].color = null;
         next[p].is_ot = false;
@@ -162,12 +163,16 @@ export function EditSheet({
     }
     setDrafts(next);
 
-    // ตั้งค่า allDayType จากข้อมูล: ถ้าทั้ง 3 ช่วงเป็น off/leave เหมือนกัน → ให้แสดงเป็นค่านั้น
-    const t0 = next.morning.day_type as DayType;
-    const t1 = next.afternoon.day_type as DayType;
-    const t2 = next.night.day_type as DayType;
-    if (t0 === t1 && t1 === t2) setAllDayType(t0);
-    else setAllDayType("shift"); // ถ้าปะปน ให้ default แสดงทำงาน
+    const hasAll = periods.every((p) => !!next[p].enabled);
+    if (hasAll) {
+      const t0 = next.morning.day_type as DayType;
+      const t1 = next.afternoon.day_type as DayType;
+      const t2 = next.night.day_type as DayType;
+      if (t0 === t1 && t1 === t2) setAllDayType(t0);
+      else setAllDayType("shift");
+    } else {
+      setAllDayType("shift");
+    }
   }, [dateISO, existingMap]);
 
   if (!open || !dateISO) return null;
@@ -178,7 +183,6 @@ export function EditSheet({
     setDrafts((prev) => ({ ...prev, [active]: { ...prev[active], ...patch } }));
   };
 
-  // ✅ กด “ทำงาน/หยุด/ลา” แบบทั้งวัน
   const applyAllDay = (v: DayType) => {
     setAllDayType(v);
     setDrafts((prev) => {
@@ -186,8 +190,8 @@ export function EditSheet({
       for (const p of periods) {
         next[p] = {
           ...next[p],
+          enabled: true,               
           day_type: v,
-          // ถ้าไม่ใช่ทำงาน => ล้างค่าที่เกี่ยวกับเวรทั้งหมด
           color: v === "shift" ? (next[p].color ?? "green") : null,
           is_ot: v === "shift" ? next[p].is_ot : false,
           swapped: v === "shift" ? next[p].swapped : false,
@@ -198,14 +202,33 @@ export function EditSheet({
     });
   };
 
+  const toggleEnabled = () => {
+    const nextEnabled = !d.enabled;
+    setDraft({
+      enabled: nextEnabled,
+      day_type: "shift",
+      color: d.color ?? "green",
+      is_ot: false,
+      swapped: false,
+      swapped_with: "",
+    });
+  };
+
   const saveAll = async () => {
     try {
       setSaving(true);
 
-      // upsert ทั้ง 3 ช่วงเสมอ เพื่อให้ “หยุด/ลา ทั้งวัน” แน่นอน
       for (const p of periods) {
         const ex = existingMap.get(p);
         const x = drafts[p];
+
+        if (!x.enabled) {
+          if (ex) {
+            const { error } = await supabase.from("shifts_public").delete().eq("id", ex.id);
+            if (error) throw error;
+          }
+          continue;
+        }
 
         const payload = {
           work_date: dateISO,
@@ -241,14 +264,13 @@ export function EditSheet({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white shadow-2xl max-h-[85vh] pb-[env(safe-area-inset-bottom)]">
-        {/* header */}
         <div className="sticky top-0 z-10 rounded-t-3xl bg-white px-4 pt-3">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-300" />
 
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-base font-extrabold">{dateISO}</div>
-              <div className="text-xs text-zinc-500">ตั้งค่าเวรแบบทั้งวัน + รายช่วง</div>
+              <div className="text-xs text-zinc-500">เลือกเฉพาะช่วงที่มีเวร</div>
             </div>
             <button
               onClick={onClose}
@@ -260,19 +282,15 @@ export function EditSheet({
           </div>
 
           <div className="mt-3">
-            {/* ✅ ปุ่มกลางทั้งวัน */}
             <CenterMode value={allDayType} onChange={applyAllDay} />
           </div>
 
-          {/* ถ้า “ทำงาน” ถึงจะแก้รายช่วงได้ */}
           <div className={clsx("mt-3", allDayType !== "shift" && "opacity-50 pointer-events-none")}>
             <Segmented value={active} onChange={setActive} />
           </div>
         </div>
 
-        {/* content scroll */}
         <div className="px-4 pb-4 pt-4 overflow-y-auto overscroll-contain touch-pan-y">
-          {/* ถ้าเลือก หยุด/ลา ทั้งวัน ให้โชว์แค่ note (มินิมอล) */}
           {allDayType !== "shift" ? (
             <>
               <div className="text-sm font-semibold text-zinc-800">หมายเหตุ</div>
@@ -280,7 +298,6 @@ export function EditSheet({
                 value={drafts.morning.note}
                 onChange={(e) => {
                   const v = e.target.value;
-                  // note ใช้อันเดียวทั้งวัน: เขียนแล้วกระจายให้ 3 ช่วงเหมือนกัน
                   setDrafts((prev) => ({
                     ...prev,
                     morning: { ...prev.morning, note: v },
@@ -309,69 +326,85 @@ export function EditSheet({
             </>
           ) : (
             <>
-              {/* สีเวร (ไม่มี text) */}
-              <div className="text-sm font-semibold text-zinc-800">สีเวร</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {colors.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    aria-label={`color-${c}`}
-                    onClick={() => setDraft({ color: c })}
-                    className={clsx(
-                      "h-10 w-10 rounded-full shadow-sm transition active:scale-[0.98]",
-                      colorSwatchClass[c],
-                      d.color === c ? "ring-2 ring-zinc-900 ring-offset-2" : "ring-0"
-                    )}
-                  />
-                ))}
-              </div>
-
-              {/* OT / สลับ ใช้ไอคอนแทน text */}
-              <div className="mt-4 flex items-center gap-2">
-                <IconToggle
-                  active={d.is_ot}
-                  onToggle={() => setDraft({ is_ot: !d.is_ot })}
-                  icon="⏱"
-                  ariaLabel="toggle-ot"
-                />
-                <IconToggle
-                  active={d.swapped}
-                  onToggle={() => setDraft({ swapped: !d.swapped })}
-                  icon="↔"
-                  ariaLabel="toggle-swapped"
-                />
-
-                <div className="ml-auto text-xs text-zinc-500">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-zinc-800">
                   {periodLabel[active]}
                 </div>
+
+                <button
+                  type="button"
+                  onClick={toggleEnabled}
+                  className={clsx(
+                    "rounded-2xl px-3 py-2 text-sm font-extrabold transition",
+                    d.enabled ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700"
+                  )}
+                >
+                  {d.enabled ? "เลือกแล้ว" : "เพิ่มเวร"}
+                </button>
               </div>
 
-              {/* รายละเอียดสลับเวร */}
-              {d.swapped && (
-                <div className="mt-3">
-                  <input
-                    value={d.swapped_with}
-                    onChange={(e) => setDraft({ swapped_with: e.target.value })}
-                    placeholder="สลับกับใคร / รายละเอียด"
-                    className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm"
-                  />
+              {!d.enabled ? (
+                <div className="mt-3 rounded-2xl bg-zinc-100 p-3 text-sm text-zinc-600">
+                  ยังไม่ได้เลือกช่วงนี้ — กด <span className="font-semibold">เพิ่มเวร</span> เพื่อใส่เวร
                 </div>
+              ) : (
+                <>
+                  <div className="mt-4 text-sm font-semibold text-zinc-800">สีเวร</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {colors.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        aria-label={`color-${c}`}
+                        onClick={() => setDraft({ color: c })}
+                        className={clsx(
+                          "h-10 w-10 rounded-full shadow-sm transition active:scale-[0.98]",
+                          colorSwatchClass[c],
+                          d.color === c ? "ring-2 ring-zinc-900 ring-offset-2" : "ring-0"
+                        )}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <IconToggle
+                      active={d.is_ot}
+                      onToggle={() => setDraft({ is_ot: !d.is_ot })}
+                      icon="⏱"
+                      ariaLabel="toggle-ot"
+                    />
+                    <IconToggle
+                      active={d.swapped}
+                      onToggle={() => setDraft({ swapped: !d.swapped })}
+                      icon="↔"
+                      ariaLabel="toggle-swapped"
+                    />
+                  </div>
+
+                  {d.swapped && (
+                    <div className="mt-3">
+                      <input
+                        value={d.swapped_with}
+                        onChange={(e) => setDraft({ swapped_with: e.target.value })}
+                        placeholder="สลับกับใคร / รายละเอียด"
+                        className="w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm"
+                      />
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <div className="text-sm font-semibold text-zinc-800">หมายเหตุ</div>
+                    <textarea
+                      value={d.note}
+                      onChange={(e) => setDraft({ note: e.target.value })}
+                      className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm"
+                      rows={3}
+                      placeholder="เช่น ขอแลกเวร / รายละเอียดเพิ่มเติม"
+                    />
+                  </div>
+                </>
               )}
 
-              {/* หมายเหตุ */}
-              <div className="mt-4">
-                <div className="text-sm font-semibold text-zinc-800">หมายเหตุ</div>
-                <textarea
-                  value={d.note}
-                  onChange={(e) => setDraft({ note: e.target.value })}
-                  className="mt-2 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm"
-                  rows={3}
-                  placeholder="เช่น ขอแลกเวร / รายละเอียดเพิ่มเติม"
-                />
-              </div>
-
-              {/* Save */}
               <div className="mt-5">
                 <button
                   disabled={saving}

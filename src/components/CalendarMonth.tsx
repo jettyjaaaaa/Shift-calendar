@@ -46,7 +46,6 @@ export function CalendarMonth({
           const inMonth = d.month() === month.month();
           const itemsRaw = shiftsByDate[iso] ?? [];
 
-          // เรียงชิปให้เป็น ช -> บ -> ด เสมอ และคงลำดับอื่นๆรอง (ถ้ามี)
           const items = [...itemsRaw].sort((a, b) => {
             return (periodOrder[a.period] ?? 99) - (periodOrder[b.period] ?? 99);
           });
@@ -67,7 +66,6 @@ export function CalendarMonth({
                 <div className="text-sm font-semibold">{d.date()}</div>
               </div>
 
-              {/* ✅ แนวนอนแบบเดิม: chips เรียงซ้าย→ขวา (wrap ได้) */}
               <div className="mt-2 flex flex-wrap items-center gap-1">
                 {items.slice(0, 3).map((s) => (
                   <ShiftChip key={s.id} shift={s} />
