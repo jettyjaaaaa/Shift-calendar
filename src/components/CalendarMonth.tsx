@@ -11,11 +11,7 @@ function startOfGrid(month: dayjs.Dayjs) {
   return start.subtract(dow, "day");
 }
 
-const periodOrder: Record<ShiftPeriod, number> = {
-  morning: 0,
-  afternoon: 1,
-  night: 2,
-};
+const periodOrder: ShiftPeriod[] = ["morning", "afternoon", "night"];
 
 export function CalendarMonth({
   month,
@@ -44,37 +40,70 @@ export function CalendarMonth({
         {days.map((d) => {
           const iso = d.format("YYYY-MM-DD");
           const inMonth = d.month() === month.month();
-          const itemsRaw = shiftsByDate[iso] ?? [];
+          const items = shiftsByDate[iso] ?? [];
 
-          const items = [...itemsRaw].sort((a, b) => {
-            return (periodOrder[a.period] ?? 99) - (periodOrder[b.period] ?? 99);
-          });
+          const byPeriod = new Map<ShiftPeriod, ShiftRow>();
+          for (const it of items) byPeriod.set(it.period, it);
+
+          const hasAll3 = periodOrder.every((p) => byPeriod.has(p));
+          const allOff =
+            hasAll3 && periodOrder.every((p) => byPeriod.get(p)?.day_type === "off");
+          const allLeave =
+            hasAll3 && periodOrder.every((p) => byPeriod.get(p)?.day_type === "leave");
+
+          const isAllDaySpecial = allOff || allLeave;
+
+          const isToday = iso === todayISO;
 
           return (
             <button
               key={iso}
               onClick={() => onPickDate(iso)}
-              className={clsx(
-                "min-h-[86px] rounded-2xl p-2 text-left shadow-sm",
-                "bg-white active:scale-[0.99] transition",
-                inMonth ? "opacity-100" : "opacity-50",
-                iso === todayISO && "ring-2 ring-zinc-900"
-              )}
               type="button"
+              className={clsx(
+                "rounded-2xl shadow-sm transition active:scale-[0.99]",
+                "h-[118px] overflow-hidden p-2 pb-3",
+                "grid grid-rows-[22px_1fr]",
+                inMonth ? "opacity-100" : "opacity-50",
+
+                isAllDaySpecial
+                    ? "bg-zinc-200"       
+                    : isToday
+                    ? "bg-yellow-100 ring-2 ring-zinc-900"
+                    : "bg-white"
+            )}
             >
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold">{d.date()}</div>
+              <div className="flex items-center justify-start">
+                <div className={clsx("text-sm font-semibold", isAllDaySpecial && "text-zinc-900")}>
+                  {d.date()}
+                </div>
               </div>
 
-              <div className="mt-2 flex flex-wrap items-center gap-1">
-                {items.slice(0, 3).map((s) => (
-                  <ShiftChip key={s.id} shift={s} />
-                ))}
-
-                {items.length > 3 && (
-                  <span className="text-[11px] font-semibold text-zinc-500">
-                    +{items.length - 3}
-                  </span>
+              <div className="relative">
+                {isAllDaySpecial ? (
+                    <div className="h-full w-full relative">
+                        <div
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+                                    rounded-xl bg-white/60 px-3 py-2 text-[12px] font-extrabold text-zinc-900"
+                        >
+                        {allOff ? "หยุด" : "ลา"}
+                        </div>
+                    </div>
+                    ) : (
+                  <div className="grid grid-rows-3 gap-1">
+                    {periodOrder.map((p) => {
+                      const s = byPeriod.get(p);
+                      return (
+                        <div key={p} className="h-[26px] w-full">
+                          {s ? (
+                            <ShiftChip shift={s} />
+                          ) : (
+                            <div className="h-[26px] w-full bg-transparent" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </button>
