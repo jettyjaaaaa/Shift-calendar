@@ -1,65 +1,109 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import dayjs from "dayjs";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { ShiftRow } from "@/lib/types";
+import { CalendarMonth } from "@/components/CalendarMonth";
+import { EditSheet } from "@/components/EditSheet";
+import Link from "next/link";
+
+export default function HomePage() {
+  const [month, setMonth] = useState(dayjs().startOf("month"));
+  const [rows, setRows] = useState<ShiftRow[]>([]);
+  const [pickedDate, setPickedDate] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const loadMonth = async () => {
+    const start = month.startOf("month").subtract(7, "day").format("YYYY-MM-DD");
+    const end = month.endOf("month").add(7, "day").format("YYYY-MM-DD");
+
+    const { data, error } = await supabase
+      .from("shifts_public")
+      .select("*")
+      .gte("work_date", start)
+      .lte("work_date", end)
+      .order("work_date", { ascending: true });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setRows((data ?? []) as ShiftRow[]);
+  };
+
+  useEffect(() => {
+    loadMonth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [month]);
+
+  const shiftsByDate = useMemo(() => {
+    const m: Record<string, ShiftRow[]> = {};
+    for (const r of rows) (m[r.work_date] ||= []).push(r);
+    return m;
+  }, [rows]);
+
+  const pickedShifts = useMemo(
+    () => (pickedDate ? shiftsByDate[pickedDate] ?? [] : []),
+    [pickedDate, shiftsByDate]
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="mx-auto max-w-[520px] p-3 sm:p-4">
+      <header className="sticky top-0 z-10 bg-zinc-50/80 backdrop-blur rounded-3xl p-3">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setMonth((m) => m.subtract(1, "month"))}
+            className="rounded-2xl bg-white px-3 py-2 font-semibold shadow-sm"
+          >
+            ←
+          </button>
+
+          <div className="text-base font-extrabold">{month.format("MMMM YYYY")}</div>
+
+          <button
+            onClick={() => setMonth((m) => m.add(1, "month"))}
+            className="rounded-2xl bg-white px-3 py-2 font-semibold shadow-sm"
+          >
+            →
+          </button>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between text-sm">
+          <Link className="text-zinc-700 underline" href="/history">
+            ประวัติการแก้ไข
+          </Link>
+
+          <button
+              onClick={loadMonth}
+              className="h-10 w-10 rounded-2xl bg-white font-bold shadow-sm grid place-items-center active:scale-[0.98]"
+              aria-label="refresh"
+              title="Refresh"
+            >
+              ↻
+          </button>
+
+        </div>
+      </header>
+
+      <div className="mt-3 pb-24">
+        <CalendarMonth
+          month={month}
+          shiftsByDate={shiftsByDate}
+          onPickDate={(iso) => {
+            setPickedDate(iso);
+            setSheetOpen(true);
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+
+      <EditSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        dateISO={pickedDate}
+        shifts={pickedShifts}
+        onSaved={loadMonth}
+      />
+    </main>
   );
 }
