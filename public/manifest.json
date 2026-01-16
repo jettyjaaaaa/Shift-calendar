@@ -1,0 +1,15 @@
+{
+  "name": "Rak auan kub",
+  "short_name": "Rak auan kub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/images/home.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

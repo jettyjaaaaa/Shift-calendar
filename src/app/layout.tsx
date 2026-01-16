@@ -1,8 +1,19 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 
+
 export const metadata: Metadata = {
-  title: "Duty Calendar",
+  manifest: "/manifest.json",
+  title: "Rak auan kub",
+  icons: {
+    apple: "/images/home.png",
+  },
+
+  appleWebApp: {
+    capable: true,
+    title: "Rak auan kub",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
