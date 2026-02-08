@@ -5,6 +5,7 @@ export const colorClasses: Record<string, string> = {
   orange: "bg-orange-500 text-white",
   pink: "bg-pink-500 text-white",
   white: "bg-white text-black border border-zinc-300",
+  red: "bg-red-500 text-white",
 };
 
 export const periodLabel: Record<string, string> = {
