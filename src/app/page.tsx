@@ -14,11 +14,17 @@ const EditSheet = dynamic(() => import("@/components/EditSheet").then((m) => m.E
 });
 
 export default function HomePage() {
-  const [month, setMonth] = useState(dayjs().startOf("month"));
+  const [month, setMonth] = useState(() => dayjs().startOf("month"));
   const [rows, setRows] = useState<ShiftRow[]>([]);
   const [pickedDate, setPickedDate] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // Fix: when route is statically pre-rendered, the initial month can get stuck at build/deploy time.
+  // After mount, always snap to the user's current month.
+  useEffect(() => {
+    setMonth(dayjs().startOf("month"));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,9 +100,12 @@ export default function HomePage() {
           </button>
         </div>
 
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="text-[11px] text-zinc-500">
+            + ซื้อ,&nbsp;&nbsp;- ขาย,&nbsp;&nbsp;● OT,&nbsp;&nbsp;แดง oncall
+          </div>
           <Link href="/summary" className="text-xs px-3 py-2 rounded-xl bg-black text-white">
-            summary
+            หมายเหตุ
           </Link>
         </div>
 

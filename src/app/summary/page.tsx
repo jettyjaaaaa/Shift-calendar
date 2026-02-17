@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import type { DayType, ShiftPeriod } from "@/lib/types";
 import { periodLabel } from "@/lib/colors";
+import { parseShiftNote } from "@/lib/shiftNoteMeta";
 
 const HOUR_PER_SHIFT = 8;
 
@@ -17,12 +18,18 @@ type SummaryShiftRow = {
   sold: boolean;
   sold_to: string | null;
   sold_price: number | null;
+  note: string | null;
 };
 
 export default function SummaryPage() {
-  const [month, setMonth] = useState(dayjs());
+  const [month, setMonth] = useState(() => dayjs());
   const [rows, setRows] = useState<SummaryShiftRow[]>([]);
   const [leaveRemain, setLeaveRemain] = useState<number>(0);
+
+  // Fix stale SSR/SSG snapshot month (e.g. PWA cached HTML).
+  useEffect(() => {
+    setMonth(dayjs());
+  }, []);
 
   const load = useCallback(async () => {
     const start = month.startOf("month").format("YYYY-MM-DD");
@@ -30,7 +37,7 @@ export default function SummaryPage() {
 
     const { data } = await supabase
       .from("shifts_public")
-      .select("id, work_date, period, day_type, sold, sold_to, sold_price")
+      .select("id, work_date, period, day_type, sold, sold_to, sold_price, note")
       .gte("work_date", start)
       .lte("work_date", end);
 
@@ -55,32 +62,54 @@ export default function SummaryPage() {
   }, [load, loadLeave]);
 
   const data = useMemo(() => {
-    const worked = rows.filter((r) => r.day_type === "shift" && !r.sold);
-    const totalHours = worked.length * HOUR_PER_SHIFT;
-
     const periodRank: Record<string, number> = {
       morning: 0,
       afternoon: 1,
       night: 2,
     };
 
-    const soldRows = rows
-      .filter((r) => r.sold)
+    const oncallRows = rows
+      .filter((r) => r.day_type === "shift")
+      .filter((r) => !!parseShiftNote(r.note).meta.oncall)
       .slice()
       .sort((a, b) => {
         const d = a.work_date.localeCompare(b.work_date);
         if (d !== 0) return d;
         return (periodRank[a.period] ?? 99) - (periodRank[b.period] ?? 99);
       });
-    const lostMoney = soldRows.reduce((sum, r) => {
-      const price = r.sold_price ?? 1200;
-      return sum + price;
+
+    const worked = rows.filter((r) => {
+      if (r.day_type !== "shift") return false;
+      if (r.sold) return false;
+      const meta = parseShiftNote(r.note).meta;
+      return !meta.oncall;
+    });
+    const totalHours = worked.length * HOUR_PER_SHIFT;
+
+    const soldRows = rows.filter((r) => r.sold);
+    const boughtRows = rows.filter((r) => parseShiftNote(r.note).meta.bought);
+
+    const tradedRows = rows
+      .filter((r) => r.sold || parseShiftNote(r.note).meta.bought)
+      .slice()
+      .sort((a, b) => {
+        const d = a.work_date.localeCompare(b.work_date);
+        if (d !== 0) return d;
+        return (periodRank[a.period] ?? 99) - (periodRank[b.period] ?? 99);
+      });
+
+    const lostMoney = soldRows.reduce((sum, r) => sum + (r.sold_price ?? 1200), 0);
+    const spentMoney = boughtRows.reduce((sum, r) => {
+      const meta = parseShiftNote(r.note).meta;
+      return sum + (meta.bought_price ?? 1200);
     }, 0);
 
     return {
       totalHours,
-      soldRows,
+      tradedRows,
       lostMoney,
+      spentMoney,
+      oncallRows,
     };
   }, [rows]);
 
@@ -96,7 +125,7 @@ export default function SummaryPage() {
           </button>
 
           <div className="text-center">
-            <div className="text-xs text-zinc-500">summary</div>
+            <div className="text-xs text-zinc-500">หมายเหตุ</div>
             <div className="text-lg font-semibold">{month.format("MMMM YYYY")}</div>
           </div>
 
@@ -119,6 +148,30 @@ export default function SummaryPage() {
           </div>
 
           <div className="bg-zinc-50 rounded-2xl p-5">
+            <div className="text-xs text-zinc-500">เวร oncall เดือนนี้</div>
+            <div className="text-4xl font-bold text-red-600">{data.oncallRows.length}</div>
+            <div className="text-xs text-zinc-400 mt-1">OT แต่ไม่ได้ขึ้น</div>
+
+            {data.oncallRows.length === 0 ? (
+              <div className="text-xs text-zinc-400 mt-3">ไม่มี</div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {data.oncallRows.map((r) => (
+                  <div
+                    key={r.id}
+                    className="bg-white rounded-xl px-3 py-2 border flex justify-between"
+                  >
+                    <div className="text-sm">
+                      {dayjs(r.work_date).format("DD/MM/YYYY")} • {periodLabel[r.period]}
+                    </div>
+                    <div className="text-xs font-bold text-red-600">oncall</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-zinc-50 rounded-2xl p-5">
             <div className="text-xs text-zinc-500">วันลาพักผ่อนคงเหลือ</div>
             <div className="text-3xl font-bold">{leaveRemain}</div>
             <div className="mt-2">
@@ -136,25 +189,46 @@ export default function SummaryPage() {
           </div>
 
           <div className="bg-zinc-50 rounded-2xl p-5">
-            <div className="text-sm font-bold mb-2">เวรที่ขายเดือนนี้</div>
+            <div className="text-xs text-zinc-500">เงินที่จ่ายจากซื้อเวร</div>
+            <div className="text-3xl font-bold text-emerald-600">
+              +{data.spentMoney.toLocaleString("th-TH")}
+            </div>
+          </div>
 
-            {data.soldRows.length === 0 && <div className="text-xs text-zinc-400">ไม่มี</div>}
+          <div className="bg-zinc-50 rounded-2xl p-5">
+            <div className="text-sm font-bold mb-2">เวรที่ซื้อ/ขายเดือนนี้</div>
+
+            {data.tradedRows.length === 0 && <div className="text-xs text-zinc-400">ไม่มี</div>}
 
             <div className="space-y-2">
-              {data.soldRows.map((r) => (
-                <div
-                  key={r.id}
-                  className="bg-white rounded-xl px-3 py-2 border flex justify-between"
-                >
-                  <div>
-                    <div className="text-sm">
-                      {dayjs(r.work_date).format("DD/MM/YYYY")} • {periodLabel[r.period]}
+              {data.tradedRows.map((r) => {
+                const meta = parseShiftNote(r.note).meta;
+                const isBought = !!meta.bought;
+                const price = isBought ? (meta.bought_price ?? 1200) : (r.sold_price ?? 1200);
+
+                return (
+                  <div
+                    key={r.id}
+                    className="bg-white rounded-xl px-3 py-2 border flex justify-between"
+                  >
+                    <div>
+                      <div className="text-sm">
+                        {dayjs(r.work_date).format("DD/MM/YYYY")} • {periodLabel[r.period]}{" "}
+                        <span className={isBought ? "text-emerald-700" : "text-red-600"}>
+                          {isBought ? "+" : "-"}
+                        </span>
+                      </div>
+                      <div className="text-xs text-zinc-500">
+                        {isBought ? `ซื้อจาก ${meta.bought_from || "-"}` : `ขายให้ ${r.sold_to || "-"}`}
+                      </div>
                     </div>
-                    <div className="text-xs text-zinc-500">ขายให้ {r.sold_to || "-"}</div>
+
+                    <div className={isBought ? "text-sm text-emerald-700 font-semibold" : "text-sm text-red-500 font-semibold"}>
+                      {price}
+                    </div>
                   </div>
-                  <div className="text-sm text-red-500 font-semibold">{r.sold_price ?? 1200}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

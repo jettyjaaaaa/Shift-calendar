@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { parseShiftNote } from "@/lib/shiftNoteMeta";
 
 type LeaveDayRow = {
   id: number;
@@ -60,7 +61,7 @@ export default function LeaveListPage() {
     <div className="min-h-dvh bg-white">
       <div className="max-w-[520px] mx-auto px-4 pt-6 pb-32">
         <Link href="/summary" className="text-xs text-zinc-500">
-          ← กลับ summary
+          ← กลับหมายเหตุ
         </Link>
 
         <h1 className="text-xl font-bold mt-3">วันลาพักผ่อนทั้งหมด</h1>
@@ -76,7 +77,12 @@ export default function LeaveListPage() {
                   {g.items.map((r) => (
                     <div key={r.id} className="bg-white border rounded-xl p-3 shadow-sm">
                       <div className="font-semibold">{dayjs(r.work_date).format("DD/MM/YYYY")}</div>
-                      {r.note && <div className="text-xs text-zinc-500 mt-1">{r.note}</div>}
+                      {(() => {
+                        const text = parseShiftNote(r.note).text;
+                        return text ? (
+                          <div className="text-xs text-zinc-500 mt-1">{text}</div>
+                        ) : null;
+                      })()}
                     </div>
                   ))}
                 </div>

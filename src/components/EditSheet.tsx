@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { supabase } from "@/lib/supabaseClient";
 import { DayType, LeaveKind, ShiftColor, ShiftPeriod, ShiftRow } from "@/lib/types";
 import { periodLabel } from "@/lib/colors";
+import { buildShiftNote, parseShiftNote, ShiftNoteMeta } from "@/lib/shiftNoteMeta";
 
 const periods: ShiftPeriod[] = ["morning", "afternoon", "night"];
 const colors: ShiftColor[] = ["green", "blue", "yellow", "orange", "pink", "white"];
@@ -17,11 +18,16 @@ type Draft = {
   enabled: boolean;
   color: ShiftColor | null;
   is_ot: boolean;
+  oncall: boolean;
   swapped: boolean;
   swapped_with: string;
+  swap_remark: string;
   sold: boolean;
   sold_to: string;
   sold_price: number;
+  bought: boolean;
+  bought_from: string;
+  bought_price: number;
   note: string;
 };
 
@@ -113,33 +119,48 @@ export function EditSheet({
       enabled: true,
       color: "green",
       is_ot: false,
+      oncall: false,
       swapped: false,
       swapped_with: "",
+      swap_remark: "",
       sold: false,
       sold_to: "",
       sold_price: SOLD_PRICE_DEFAULT,
+      bought: false,
+      bought_from: "",
+      bought_price: SOLD_PRICE_DEFAULT,
       note: "",
     },
     afternoon: {
       enabled: true,
       color: "blue",
       is_ot: false,
+      oncall: false,
       swapped: false,
       swapped_with: "",
+      swap_remark: "",
       sold: false,
       sold_to: "",
       sold_price: SOLD_PRICE_DEFAULT,
+      bought: false,
+      bought_from: "",
+      bought_price: SOLD_PRICE_DEFAULT,
       note: "",
     },
     night: {
       enabled: true,
       color: "yellow",
       is_ot: false,
+      oncall: false,
       swapped: false,
       swapped_with: "",
+      swap_remark: "",
       sold: false,
       sold_to: "",
       sold_price: SOLD_PRICE_DEFAULT,
+      bought: false,
+      bought_from: "",
+      bought_price: SOLD_PRICE_DEFAULT,
       note: "",
     },
   });
@@ -166,16 +187,24 @@ export function EditSheet({
       const ex = existingMap.get(p);
       const defaultColor: ShiftColor =
         p === "morning" ? "green" : p === "afternoon" ? "blue" : "yellow";
+
+      const parsed = parseShiftNote(ex?.note);
+      const meta = parsed.meta;
       next[p] = {
         enabled: !!ex || detected.size === 0,
         color: ex?.color ?? defaultColor,
         is_ot: ex?.is_ot ?? false,
+        oncall: !!meta.oncall,
         swapped: ex?.swapped ?? false,
         swapped_with: ex?.swapped_with ?? "",
+        swap_remark: meta.swap_remark ?? "",
         sold: ex?.sold ?? false,
         sold_to: ex?.sold_to ?? "",
         sold_price: ex?.sold_price ?? SOLD_PRICE_DEFAULT,
-        note: ex?.note ?? "",
+        bought: !!meta.bought,
+        bought_from: meta.bought_from ?? "",
+        bought_price: meta.bought_price ?? SOLD_PRICE_DEFAULT,
+        note: parsed.text ?? "",
       };
     }
     setDrafts(next);
@@ -250,18 +279,26 @@ export function EditSheet({
           continue;
         }
 
+        const meta: ShiftNoteMeta = {
+          bought: x.bought,
+          bought_from: x.bought_from,
+          bought_price: x.bought_price,
+          oncall: x.oncall,
+          swap_remark: x.swap_remark,
+        };
+
         const payload = {
           work_date: dateISO,
           period: p,
           day_type: allDayType,
-          color: isShift ? (x.sold ? "red" : x.color) : null,
-          is_ot: isShift ? x.is_ot : false,
+          color: isShift ? (x.oncall ? "red" : x.color) : null,
+          is_ot: isShift ? (x.oncall ? true : x.is_ot) : false,
           swapped: isShift ? x.swapped : false,
           swapped_with: isShift && x.swapped ? x.swapped_with || null : null,
           sold: isShift ? x.sold : false,
           sold_to: isShift && x.sold ? x.sold_to || null : null,
           sold_price: isShift && x.sold ? x.sold_price || SOLD_PRICE_DEFAULT : 0,
-          note: x.note?.trim() ? x.note.trim() : null,
+          note: buildShiftNote(x.note, meta),
           leave_kind: allDayType === "leave" ? leaveKind : null,
         } satisfies Partial<ShiftRow> & Pick<ShiftRow, "work_date" | "period" | "day_type">;
 
@@ -364,10 +401,10 @@ export function EditSheet({
                 </div>
               ) : (
                 <>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2 mt-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={() => setDraft({ is_ot: !d.is_ot })}
+                      onClick={() => setDraft({ is_ot: !d.is_ot, oncall: false })}
                       className={clsx(
                         "px-3 py-2 rounded-xl",
                         d.is_ot ? "bg-black text-white" : "bg-zinc-100"
@@ -375,11 +412,66 @@ export function EditSheet({
                     >
                       OT
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDraft({
+                          oncall: !d.oncall,
+                          is_ot: !d.oncall ? true : d.is_ot,
+                        })
+                      }
+                      className={clsx(
+                        "px-3 py-2 rounded-xl",
+                        d.oncall ? "bg-red-600 text-white" : "bg-zinc-100"
+                      )}
+                    >
+                      oncall
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDraft({
+                          swapped: !d.swapped,
+                          swapped_with: !d.swapped ? d.swapped_with : "",
+                          swap_remark: !d.swapped ? d.swap_remark : "",
+                        })
+                      }
+                      className={clsx(
+                        "px-3 py-2 rounded-xl",
+                        d.swapped ? "bg-zinc-900 text-white" : "bg-zinc-100"
+                      )}
+                    >
+                      สลับเวร
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDraft({
+                          bought: !d.bought,
+                          sold: !d.bought ? false : d.sold,
+                          sold_to: !d.bought ? "" : d.sold_to,
+                          sold_price: !d.bought ? SOLD_PRICE_DEFAULT : d.sold_price,
+                        })
+                      }
+                      className={clsx(
+                        "px-3 py-2 rounded-xl",
+                        d.bought ? "bg-emerald-600 text-white" : "bg-zinc-100"
+                      )}
+                    >
+                      ซื้อเวร
+                    </button>
+
                     <button
                       type="button"
                       onClick={() =>
                         setDraft({
                           sold: !d.sold,
+                          bought: !d.sold ? false : d.bought,
+                          bought_from: !d.sold ? "" : d.bought_from,
+                          bought_price: !d.sold ? SOLD_PRICE_DEFAULT : d.bought_price,
                           sold_price: !d.sold ? d.sold_price || SOLD_PRICE_DEFAULT : d.sold_price,
                         })
                       }
@@ -391,6 +483,42 @@ export function EditSheet({
                       ขายเวร
                     </button>
                   </div>
+
+                  {d.swapped && (
+                    <>
+                      <input
+                        value={d.swapped_with}
+                        onChange={(e) => setDraft({ swapped_with: e.target.value })}
+                        placeholder="สลับกับใคร"
+                        className="mt-3 w-full rounded-2xl border px-4 py-3"
+                      />
+                      <input
+                        value={d.swap_remark}
+                        onChange={(e) => setDraft({ swap_remark: e.target.value })}
+                        placeholder="remark เวรที่สลับมา (optional)"
+                        className="mt-2 w-full rounded-2xl border px-4 py-3"
+                      />
+                    </>
+                  )}
+
+                  {d.bought && (
+                    <>
+                      <input
+                        value={d.bought_from}
+                        onChange={(e) => setDraft({ bought_from: e.target.value })}
+                        placeholder="ซื้อจากใคร"
+                        className="mt-3 w-full rounded-2xl border px-4 py-3"
+                      />
+                      <input
+                        type="number"
+                        value={d.bought_price}
+                        onChange={(e) => setDraft({ bought_price: Number(e.target.value) })}
+                        step={SOLD_PRICE_STEP}
+                        placeholder="ราคา"
+                        className="mt-2 w-full rounded-2xl border px-4 py-3"
+                      />
+                    </>
+                  )}
 
                   {d.sold && (
                     <>
@@ -452,6 +580,13 @@ export function EditSheet({
                       />
                     ))}
                   </div>
+
+                  <textarea
+                    value={d.note}
+                    onChange={(e) => setDraft({ note: e.target.value })}
+                    placeholder="โน้ต/หมายเหตุ (optional)"
+                    className="mt-3 w-full min-h-[90px] rounded-2xl border px-4 py-3"
+                  />
                 </>
               )}
             </>
