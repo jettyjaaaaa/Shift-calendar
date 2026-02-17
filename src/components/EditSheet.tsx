@@ -5,89 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { supabase } from "@/lib/supabaseClient";
 import { DayType, LeaveKind, ShiftColor, ShiftPeriod, ShiftRow } from "@/lib/types";
-import { periodLabel } from "@/lib/colors";
 import { buildShiftNote, parseShiftNote, ShiftNoteMeta } from "@/lib/shiftNoteMeta";
-
-const periods: ShiftPeriod[] = ["morning", "afternoon", "night"];
-const colors: ShiftColor[] = ["green", "blue", "yellow", "orange", "pink", "white"];
-const VACATION_TOTAL_DAYS = 7;
-const SOLD_PRICE_DEFAULT = 1200;
-const SOLD_PRICE_STEP = 100;
-
-type Draft = {
-  enabled: boolean;
-  color: ShiftColor | null;
-  is_ot: boolean;
-  oncall: boolean;
-  swapped: boolean;
-  swapped_with: string;
-  swap_remark: string;
-  sold: boolean;
-  sold_to: string;
-  sold_price: number;
-  bought: boolean;
-  bought_from: string;
-  bought_price: number;
-  note: string;
-};
-
-const colorSwatchClass: Record<ShiftColor, string> = {
-  green: "bg-green-500",
-  blue: "bg-sky-500",
-  yellow: "bg-yellow-300",
-  orange: "bg-orange-500",
-  pink: "bg-pink-500",
-  white: "bg-white border border-zinc-300",
-  red: "bg-red-500",
-};
-
-function CenterMode({ value, onChange }: { value: DayType; onChange: (v: DayType) => void }) {
-  const btn = (v: DayType, label: string) => (
-    <button
-      type="button"
-      onClick={() => onChange(v)}
-      className={clsx(
-        "flex-1 rounded-2xl px-4 py-3 text-sm font-extrabold transition",
-        value === v ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700"
-      )}
-    >
-      {label}{" "}
-    </button>
-  );
-
-  return (
-    <div className="flex gap-2 mt-3">
-      {btn("shift", "ทำงาน")}
-      {btn("off", "หยุด")}
-      {btn("leave", "ลา")}{" "}
-    </div>
-  );
-}
-
-function Segmented({
-  value,
-  onChange,
-}: {
-  value: ShiftPeriod;
-  onChange: (v: ShiftPeriod) => void;
-}) {
-  return (
-    <div className="grid grid-cols-3 rounded-2xl bg-zinc-100 p-1 mt-3">
-      {periods.map((p) => (
-        <button
-          key={p}
-          onClick={() => onChange(p)}
-          className={clsx(
-            "rounded-xl px-3 py-2 text-sm font-semibold transition",
-            value === p ? "bg-white shadow-sm" : "text-zinc-600"
-          )}
-        >
-          {periodLabel[p]}{" "}
-        </button>
-      ))}{" "}
-    </div>
-  );
-}
+import { CenterMode } from "@/components/editSheet/CenterMode";
+import { LeaveSection } from "@/components/editSheet/LeaveSection";
+import { Segmented } from "@/components/editSheet/Segmented";
+import { ShiftSection } from "@/components/editSheet/ShiftSection";
+import type { Draft } from "@/components/editSheet/types";
+import { periods, SOLD_PRICE_DEFAULT } from "@/components/editSheet/constants";
 
 export function EditSheet({
   open,
@@ -239,7 +163,7 @@ export function EditSheet({
 
   if (!open || !dateISO) return null;
 
-  const d = drafts[active];
+  const activeDraft = drafts[active];
 
   const setDraft = (patch: Partial<Draft>) => {
     setDrafts((prev) => ({ ...prev, [active]: { ...prev[active], ...patch } }));
@@ -345,251 +269,15 @@ export function EditSheet({
 
         <div className="px-4 pb-6">
           {allDayType === "leave" && (
-            <div className="mt-2">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLeaveKind("vacation")}
-                  className={clsx(
-                    "rounded-2xl px-4 py-3 text-sm font-extrabold transition",
-                    leaveKind === "vacation"
-                      ? "bg-zinc-900 text-white"
-                      : "bg-zinc-100 text-zinc-700"
-                  )}
-                >
-                  พักผ่อน
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLeaveKind("other")}
-                  className={clsx(
-                    "rounded-2xl px-4 py-3 text-sm font-extrabold transition",
-                    leaveKind === "other" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700"
-                  )}
-                >
-                  อื่นๆ
-                </button>
-              </div>
-
-              {leaveKind === "vacation" && (
-                <div className="mt-2 text-xs text-zinc-500">
-                  คงเหลือ {vacationRemain ?? "-"}/{VACATION_TOTAL_DAYS} วัน
-                </div>
-              )}
-            </div>
+            <LeaveSection
+              leaveKind={leaveKind}
+              setLeaveKind={setLeaveKind}
+              vacationRemain={vacationRemain}
+            />
           )}
 
           {allDayType === "shift" && (
-            <>
-              <div className="mt-3 flex items-center justify-between rounded-2xl bg-zinc-100 px-4 py-3">
-                <div className="text-sm font-semibold">มีเวรช่วงนี้</div>
-                <button
-                  type="button"
-                  onClick={() => setDraft({ enabled: !d.enabled })}
-                  className={clsx(
-                    "rounded-xl px-3 py-2 text-sm font-extrabold transition",
-                    d.enabled ? "bg-white shadow-sm" : "bg-zinc-200 text-zinc-700"
-                  )}
-                >
-                  {d.enabled ? "มี" : "ไม่มี"}
-                </button>
-              </div>
-
-              {!d.enabled ? (
-                <div className="mt-3 text-sm text-zinc-500">
-                  โหมดนี้จะลบเวรช่วง {periodLabel[active]}
-                </div>
-              ) : (
-                <>
-                  <div className="flex gap-2 mt-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setDraft({ is_ot: !d.is_ot, oncall: false })}
-                      className={clsx(
-                        "px-3 py-2 rounded-xl",
-                        d.is_ot ? "bg-black text-white" : "bg-zinc-100"
-                      )}
-                    >
-                      OT
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDraft({
-                          oncall: !d.oncall,
-                          is_ot: !d.oncall ? true : d.is_ot,
-                        })
-                      }
-                      className={clsx(
-                        "px-3 py-2 rounded-xl",
-                        d.oncall ? "bg-red-600 text-white" : "bg-zinc-100"
-                      )}
-                    >
-                      oncall
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDraft({
-                          swapped: !d.swapped,
-                          swapped_with: !d.swapped ? d.swapped_with : "",
-                          swap_remark: !d.swapped ? d.swap_remark : "",
-                        })
-                      }
-                      className={clsx(
-                        "px-3 py-2 rounded-xl",
-                        d.swapped ? "bg-zinc-900 text-white" : "bg-zinc-100"
-                      )}
-                    >
-                      สลับเวร
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDraft({
-                          bought: !d.bought,
-                          sold: !d.bought ? false : d.sold,
-                          sold_to: !d.bought ? "" : d.sold_to,
-                          sold_price: !d.bought ? SOLD_PRICE_DEFAULT : d.sold_price,
-                        })
-                      }
-                      className={clsx(
-                        "px-3 py-2 rounded-xl",
-                        d.bought ? "bg-emerald-600 text-white" : "bg-zinc-100"
-                      )}
-                    >
-                      ซื้อเวร
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDraft({
-                          sold: !d.sold,
-                          bought: !d.sold ? false : d.bought,
-                          bought_from: !d.sold ? "" : d.bought_from,
-                          bought_price: !d.sold ? SOLD_PRICE_DEFAULT : d.bought_price,
-                          sold_price: !d.sold ? d.sold_price || SOLD_PRICE_DEFAULT : d.sold_price,
-                        })
-                      }
-                      className={clsx(
-                        "px-3 py-2 rounded-xl",
-                        d.sold ? "bg-red-500 text-white" : "bg-zinc-100"
-                      )}
-                    >
-                      ขายเวร
-                    </button>
-                  </div>
-
-                  {d.swapped && (
-                    <>
-                      <input
-                        value={d.swapped_with}
-                        onChange={(e) => setDraft({ swapped_with: e.target.value })}
-                        placeholder="สลับกับใคร"
-                        className="mt-3 w-full rounded-2xl border px-4 py-3"
-                      />
-                      <input
-                        value={d.swap_remark}
-                        onChange={(e) => setDraft({ swap_remark: e.target.value })}
-                        placeholder="remark เวรที่สลับมา (optional)"
-                        className="mt-2 w-full rounded-2xl border px-4 py-3"
-                      />
-                    </>
-                  )}
-
-                  {d.bought && (
-                    <>
-                      <input
-                        value={d.bought_from}
-                        onChange={(e) => setDraft({ bought_from: e.target.value })}
-                        placeholder="ซื้อจากใคร"
-                        className="mt-3 w-full rounded-2xl border px-4 py-3"
-                      />
-                      <input
-                        type="number"
-                        value={d.bought_price}
-                        onChange={(e) => setDraft({ bought_price: Number(e.target.value) })}
-                        step={SOLD_PRICE_STEP}
-                        placeholder="ราคา"
-                        className="mt-2 w-full rounded-2xl border px-4 py-3"
-                      />
-                    </>
-                  )}
-
-                  {d.sold && (
-                    <>
-                      <input
-                        value={d.sold_to}
-                        onChange={(e) => setDraft({ sold_to: e.target.value })}
-                        placeholder="ขายให้ใคร"
-                        className="mt-3 w-full rounded-2xl border px-4 py-3"
-                      />
-                      <input
-                        type="number"
-                        value={d.sold_price}
-                        onChange={(e) => setDraft({ sold_price: Number(e.target.value) })}
-                        step={SOLD_PRICE_STEP}
-                        placeholder="ราคา"
-                        className="mt-2 w-full rounded-2xl border px-4 py-3"
-                      />
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDraft({
-                              sold_price: Math.max(
-                                0,
-                                (d.sold_price || SOLD_PRICE_DEFAULT) - SOLD_PRICE_STEP
-                              ),
-                            })
-                          }
-                          className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-extrabold"
-                        >
-                          -{SOLD_PRICE_STEP}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDraft({
-                              sold_price: (d.sold_price || SOLD_PRICE_DEFAULT) + SOLD_PRICE_STEP,
-                            })
-                          }
-                          className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-extrabold"
-                        >
-                          +{SOLD_PRICE_STEP}
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="mt-4 flex gap-2 flex-wrap">
-                    {colors.map((c) => (
-                      <button
-                        type="button"
-                        key={c}
-                        onClick={() => setDraft({ color: c })}
-                        className={clsx(
-                          "h-10 w-10 rounded-full",
-                          colorSwatchClass[c],
-                          d.color === c && "ring-2 ring-black"
-                        )}
-                      />
-                    ))}
-                  </div>
-
-                  <textarea
-                    value={d.note}
-                    onChange={(e) => setDraft({ note: e.target.value })}
-                    placeholder="โน้ต/หมายเหตุ (optional)"
-                    className="mt-3 w-full min-h-[90px] rounded-2xl border px-4 py-3"
-                  />
-                </>
-              )}
-            </>
+            <ShiftSection active={active} draft={activeDraft} setDraft={setDraft} />
           )}
 
           <button

@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:clean": "rm -rf .next && next build",
+    "build:webpack": "rm -rf .next && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier . --check",

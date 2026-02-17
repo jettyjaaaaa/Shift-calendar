@@ -20,8 +20,6 @@ export default function HomePage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
-  // Fix: when route is statically pre-rendered, the initial month can get stuck at build/deploy time.
-  // After mount, always snap to the user's current month.
   useEffect(() => {
     setMonth(dayjs().startOf("month"));
   }, []);
