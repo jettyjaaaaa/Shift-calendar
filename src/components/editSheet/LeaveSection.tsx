@@ -12,16 +12,17 @@ export function LeaveSection({
   vacationRemain: number | null;
 }) {
   return (
-    <div className="mt-2">
+    <div className="mt-4">
+      <div className="mb-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">ประเภทการลา</div>
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => setLeaveKind("vacation")}
           className={clsx(
-            "rounded-2xl px-4 py-3 text-sm font-extrabold transition",
+            "rounded-2xl border px-4 py-3 text-sm font-extrabold transition active:scale-[0.98]",
             leaveKind === "vacation"
-              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+              ? "border-amber-400 bg-amber-50 text-amber-950 dark:border-amber-500 dark:bg-amber-500/15 dark:text-amber-100"
+              : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
           )}
         >
           พักผ่อน
@@ -30,10 +31,10 @@ export function LeaveSection({
           type="button"
           onClick={() => setLeaveKind("other")}
           className={clsx(
-            "rounded-2xl px-4 py-3 text-sm font-extrabold transition",
+            "rounded-2xl border px-4 py-3 text-sm font-extrabold transition active:scale-[0.98]",
             leaveKind === "other"
-              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-              : "bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+              ? "border-amber-400 bg-amber-50 text-amber-950 dark:border-amber-500 dark:bg-amber-500/15 dark:text-amber-100"
+              : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
           )}
         >
           อื่นๆ
@@ -41,8 +42,8 @@ export function LeaveSection({
       </div>
 
       {leaveKind === "vacation" && (
-        <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-          คงเหลือ {vacationRemain ?? "-"}/{VACATION_TOTAL_DAYS} วัน
+        <div className="mt-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+          วันลาพักผ่อนคงเหลือ {vacationRemain ?? "-"}/{VACATION_TOTAL_DAYS} วัน
         </div>
       )}
     </div>

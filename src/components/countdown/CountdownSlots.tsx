@@ -9,6 +9,7 @@ import type { SlotDraft } from "./types";
 import { computeProgress, defaultDraft, validateDraft } from "./utils";
 
 const TABLE = "countdown_slots_public";
+const ACTIVE_SLOT: CountdownSlot = 2;
 
 export function CountdownSlots({ onChanged }: { onChanged?: () => void }) {
   const [rows, setRows] = useState<CountdownSlotRow[]>([]);
@@ -67,7 +68,7 @@ export function CountdownSlots({ onChanged }: { onChanged?: () => void }) {
       const { data, error } = await supabase
         .from(TABLE)
         .select("id, slot, title, start_date, target_date, created_at, updated_at")
-        .order("slot", { ascending: true });
+        .eq("slot", ACTIVE_SLOT);
 
       if (error) throw error;
       setRows((data ?? []) as CountdownSlotRow[]);
@@ -160,40 +161,42 @@ export function CountdownSlots({ onChanged }: { onChanged?: () => void }) {
     }
   };
 
+  const row = bySlot.get(ACTIVE_SLOT);
+  const stats =
+    row?.start_date && row?.target_date
+      ? computeProgress(todayISO, row.start_date, row.target_date)
+      : null;
+
   return (
-    <div ref={rootRef} className="space-y-2">
+    <div ref={rootRef} className="space-y-1.5 min-[480px]:space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Countdown</div>
-        <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100 min-[480px]:text-lg">
+          Countdown
+        </div>
+        <div className="whitespace-nowrap text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 min-[480px]:text-xs">
           {togetherDays} days and still going 🤍
         </div>
       </div>
 
-      {([1, 2] as CountdownSlot[]).map((slot) => {
-        const row = bySlot.get(slot);
-        const stats = row?.start_date && row?.target_date ? computeProgress(todayISO, row.start_date, row.target_date) : null;
-
-        return (
-          <CountdownSlotCard
-            key={slot}
-            slot={slot}
-            row={row}
-            stats={stats}
-            loading={loading}
-            saving={saving}
-            menuOpen={menuSlot === slot}
-            editing={editingSlot === slot}
-            draft={draft}
-            setDraft={setDraft}
-            errorText={errorText}
-            onToggleMenu={() => setMenuSlot((cur) => (cur === slot ? null : slot))}
-            onBeginEdit={() => beginEdit(slot)}
-            onClear={() => void clearSlot(slot)}
-            onSave={() => void save()}
-            onCancelEdit={cancelEdit}
-          />
-        );
-      })}
+      <CountdownSlotCard
+        slot={ACTIVE_SLOT}
+        row={row}
+        stats={stats}
+        loading={loading}
+        saving={saving}
+        menuOpen={menuSlot === ACTIVE_SLOT}
+        editing={editingSlot === ACTIVE_SLOT}
+        draft={draft}
+        setDraft={setDraft}
+        errorText={errorText}
+        onToggleMenu={() =>
+          setMenuSlot((current) => (current === ACTIVE_SLOT ? null : ACTIVE_SLOT))
+        }
+        onBeginEdit={() => beginEdit(ACTIVE_SLOT)}
+        onClear={() => void clearSlot(ACTIVE_SLOT)}
+        onSave={() => void save()}
+        onCancelEdit={cancelEdit}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ export type ShiftNoteMeta = {
   bought_price?: number;
   oncall?: boolean;
   swap_remark?: string;
+  swap_direction?: "out" | "in";
 };
 
 const META_PREFIX = "<!--dc-meta:";
@@ -46,6 +47,9 @@ export function parseShiftNote(note: string | null | undefined): {
   if (typeof parsed.bought_price === "number") meta.bought_price = parsed.bought_price;
   if (typeof parsed.oncall === "boolean") meta.oncall = parsed.oncall;
   if (typeof parsed.swap_remark === "string") meta.swap_remark = parsed.swap_remark;
+  if (parsed.swap_direction === "out" || parsed.swap_direction === "in") {
+    meta.swap_direction = parsed.swap_direction;
+  }
 
   return { text: textPart, meta };
 }
@@ -62,6 +66,10 @@ export function buildShiftNote(text: string, meta: ShiftNoteMeta): string | null
         : undefined,
     oncall: meta.oncall ? true : undefined,
     swap_remark: meta.swap_remark?.trim() ? meta.swap_remark.trim() : undefined,
+    swap_direction:
+      meta.swap_direction === "out" || meta.swap_direction === "in"
+        ? meta.swap_direction
+        : undefined,
   };
 
   const hasMeta = Object.values(metaClean).some((v) => v !== undefined);

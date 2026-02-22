@@ -6,23 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { LeaveDayRow } from "@/components/leave/leaveData";
 import { groupLeaveDays } from "@/components/leave/leaveData";
 import { LeaveMonthSection } from "@/components/leave/LeaveMonthSection";
-
-function IconChevronLeft(props: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={props.className}
-      aria-hidden="true"
-    >
-      <path d="M15 18l-6-6 6-6" />
-    </svg>
-  );
-}
+import { ChevronIcon } from "@/components/ChevronIcon";
 
 export default function LeaveListPage() {
   const [rows, setRows] = useState<LeaveDayRow[]>([]);
@@ -59,7 +43,7 @@ export default function LeaveListPage() {
             aria-label="กลับหมายเหตุ"
             title="กลับหมายเหตุ"
           >
-            <IconChevronLeft className="h-5 w-5" />
+            <ChevronIcon direction="left" className="h-5 w-5" />
           </Link>
         </div>
 

@@ -8,6 +8,7 @@ export type SummaryShiftRow = {
   work_date: string;
   period: ShiftPeriod;
   day_type: DayType;
+  is_ot: boolean;
   sold: boolean;
   sold_to: string | null;
   sold_price: number | null;
@@ -16,6 +17,8 @@ export type SummaryShiftRow = {
 
 export type SummaryData = {
   totalHours: number;
+  otCount: number;
+  oncallCount: number;
   tradedRows: SummaryShiftRow[];
   oncallRows: SummaryShiftRow[];
   lostMoney: number;
@@ -47,6 +50,7 @@ export function computeSummaryData(rows: SummaryShiftRow[]): SummaryData {
     return !parseShiftNote(r.note).meta.oncall;
   });
   const totalHours = worked.length * HOUR_PER_SHIFT;
+  const otCount = rows.filter((r) => r.day_type === "shift" && r.is_ot && !r.sold).length;
 
   const soldRows = rows.filter((r) => r.sold);
   const boughtRows = rows.filter((r) => parseShiftNote(r.note).meta.bought);
@@ -64,6 +68,8 @@ export function computeSummaryData(rows: SummaryShiftRow[]): SummaryData {
 
   return {
     totalHours,
+    otCount,
+    oncallCount: oncallRows.length,
     tradedRows,
     oncallRows,
     lostMoney,

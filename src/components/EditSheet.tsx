@@ -47,6 +47,7 @@ export function EditSheet({
       swapped: false,
       swapped_with: "",
       swap_remark: "",
+      swap_direction: "out",
       sold: false,
       sold_to: "",
       sold_price: SOLD_PRICE_DEFAULT,
@@ -63,6 +64,7 @@ export function EditSheet({
       swapped: false,
       swapped_with: "",
       swap_remark: "",
+      swap_direction: "out",
       sold: false,
       sold_to: "",
       sold_price: SOLD_PRICE_DEFAULT,
@@ -79,6 +81,7 @@ export function EditSheet({
       swapped: false,
       swapped_with: "",
       swap_remark: "",
+      swap_direction: "out",
       sold: false,
       sold_to: "",
       sold_price: SOLD_PRICE_DEFAULT,
@@ -114,18 +117,20 @@ export function EditSheet({
 
       const parsed = parseShiftNote(ex?.note);
       const meta = parsed.meta;
+      const swapped = ex?.swapped ?? false;
       next[p] = {
         enabled: !!ex || detected.size === 0,
         color: ex?.color ?? defaultColor,
         is_ot: ex?.is_ot ?? false,
         oncall: !!meta.oncall,
-        swapped: ex?.swapped ?? false,
+        swapped,
         swapped_with: ex?.swapped_with ?? "",
         swap_remark: meta.swap_remark ?? "",
-        sold: ex?.sold ?? false,
+        swap_direction: meta.swap_direction ?? "out",
+        sold: swapped ? false : (ex?.sold ?? false),
         sold_to: ex?.sold_to ?? "",
         sold_price: ex?.sold_price ?? SOLD_PRICE_DEFAULT,
-        bought: !!meta.bought,
+        bought: swapped ? false : !!meta.bought,
         bought_from: meta.bought_from ?? "",
         bought_price: meta.bought_price ?? SOLD_PRICE_DEFAULT,
         note: parsed.text ?? "",
@@ -164,6 +169,12 @@ export function EditSheet({
   if (!open || !dateISO) return null;
 
   const activeDraft = drafts[active];
+  const formattedDate = new Intl.DateTimeFormat("th-TH", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(dayjs(dateISO).toDate());
 
   const setDraft = (patch: Partial<Draft>) => {
     setDrafts((prev) => ({ ...prev, [active]: { ...prev[active], ...patch } }));
@@ -208,7 +219,8 @@ export function EditSheet({
           bought_from: x.bought_from,
           bought_price: x.bought_price,
           oncall: x.oncall,
-          swap_remark: x.swap_remark,
+          swap_remark: undefined,
+          swap_direction: x.swapped ? x.swap_direction : undefined,
         };
 
         const payload = {
@@ -257,17 +269,32 @@ export function EditSheet({
 
   return (
     <div className="fixed inset-0 z-50">
-      {" "}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white text-zinc-900 shadow-2xl max-h-[85vh] pb-[env(safe-area-inset-bottom)] dark:bg-zinc-950 dark:text-zinc-100">
-        <div className="px-4 pt-4 pb-3">
-          <div className="text-lg font-bold">{dateISO}</div>
+      <div className="absolute inset-0 bg-zinc-950/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92dvh] max-w-[640px] flex-col overflow-hidden rounded-t-[30px] border border-white/70 bg-[#fffdf7] text-zinc-900 shadow-[0_-24px_70px_-24px_rgba(0,0,0,0.45)] pb-[env(safe-area-inset-bottom)] dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-100 min-[640px]:bottom-4 min-[640px]:rounded-[30px]">
+        <div className="shrink-0 border-b border-amber-100 bg-white/85 px-4 pb-4 pt-2 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-5">
+          <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-amber-600">
+                จัดการตารางเวร
+              </div>
+              <div className="mt-0.5 text-lg font-black leading-tight">{formattedDate}</div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-zinc-100 text-xl text-zinc-600 transition active:scale-95 dark:bg-zinc-900 dark:text-zinc-300"
+              aria-label="ปิด"
+            >
+              ×
+            </button>
+          </div>
 
           <CenterMode value={allDayType} onChange={setAllDayType} />
           {allDayType === "shift" && <Segmented value={active} onChange={setActive} />}
         </div>
 
-        <div className="px-4 pb-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-1 sm:px-5">
           {allDayType === "leave" && (
             <LeaveSection
               leaveKind={leaveKind}
@@ -279,19 +306,21 @@ export function EditSheet({
           {allDayType === "shift" && (
             <ShiftSection active={active} draft={activeDraft} setDraft={setDraft} />
           )}
+        </div>
 
+        <div className="shrink-0 border-t border-zinc-200 bg-white/95 px-4 pb-3 pt-3 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 sm:px-5">
           <button
             type="button"
             disabled={saving}
             onClick={saveAll}
             className={clsx(
-              "mt-6 w-full py-4 rounded-2xl font-bold",
+              "w-full rounded-2xl py-3.5 text-base font-black shadow-lg transition active:scale-[0.99]",
               saving
                 ? "bg-zinc-400 text-white dark:bg-zinc-700"
-                : "bg-black text-white dark:bg-zinc-100 dark:text-zinc-900"
+                : "bg-amber-400 text-amber-950 shadow-amber-200/70 dark:bg-amber-400 dark:text-amber-950 dark:shadow-none"
             )}
           >
-            บันทึก
+            {saving ? "กำลังบันทึก…" : "บันทึกตารางเวร"}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ export type Draft = {
   swapped: boolean;
   swapped_with: string;
   swap_remark: string;
+  swap_direction: "out" | "in";
   sold: boolean;
   sold_to: string;
   sold_price: number;
