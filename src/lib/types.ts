@@ -22,3 +22,15 @@ export type ShiftRow = {
   sold_price: number | null;
   leave_kind: LeaveKind;
 };
+
+export type CountdownSlot = 1 | 2;
+
+export type CountdownSlotRow = {
+  id: number;
+  slot: CountdownSlot;
+  title: string;
+  start_date: string;
+  target_date: string;
+  created_at?: string;
+  updated_at?: string;
+};

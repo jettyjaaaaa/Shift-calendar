@@ -57,29 +57,35 @@ export default function SummaryPage() {
   const next = () => setMonth((m) => m.add(1, "month"));
 
   if (!ready) {
-    return <div className="min-h-dvh bg-white" />;
+    return <div className="min-h-dvh bg-white dark:bg-zinc-950" />;
   }
 
   return (
-    <div className="min-h-dvh bg-white">
+    <div className="min-h-dvh bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <div className="max-w-[520px] mx-auto px-4 pt-6 pb-24">
         <div className="flex items-center justify-between">
-          <button onClick={prev} className="px-3 py-2 rounded-xl bg-zinc-100">
+          <button
+            onClick={prev}
+            className="px-3 py-2 rounded-xl bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+          >
             ก่อนหน้า
           </button>
 
           <div className="text-center">
-            <div className="text-xs text-zinc-500">หมายเหตุ</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">หมายเหตุ</div>
             <div className="text-lg font-semibold">{month.format("MMMM YYYY")}</div>
           </div>
 
-          <button onClick={next} className="px-3 py-2 rounded-xl bg-zinc-100">
+          <button
+            onClick={next}
+            className="px-3 py-2 rounded-xl bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+          >
             ถัดไป
           </button>
         </div>
 
         <div className="mt-3">
-          <Link href="/" className="text-xs text-zinc-400">
+          <Link href="/" className="text-xs text-zinc-400 dark:text-zinc-400">
             ← กลับ
           </Link>
         </div>
@@ -98,7 +104,7 @@ export default function SummaryPage() {
             value={<div className="text-3xl font-bold">{leaveRemain}</div>}
           >
             <div className="mt-2">
-              <Link href="/leave" className="text-xs font-semibold text-zinc-600">
+              <Link href="/leave" className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
                 ดูวันที่ลาที่ลาไป →
               </Link>
             </div>

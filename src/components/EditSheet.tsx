@@ -259,7 +259,7 @@ export function EditSheet({
     <div className="fixed inset-0 z-50">
       {" "}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white shadow-2xl max-h-[85vh] pb-[env(safe-area-inset-bottom)]">
+      <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white text-zinc-900 shadow-2xl max-h-[85vh] pb-[env(safe-area-inset-bottom)] dark:bg-zinc-950 dark:text-zinc-100">
         <div className="px-4 pt-4 pb-3">
           <div className="text-lg font-bold">{dateISO}</div>
 
@@ -286,7 +286,9 @@ export function EditSheet({
             onClick={saveAll}
             className={clsx(
               "mt-6 w-full py-4 rounded-2xl font-bold",
-              saving ? "bg-zinc-400 text-white" : "bg-black text-white"
+              saving
+                ? "bg-zinc-400 text-white dark:bg-zinc-700"
+                : "bg-black text-white dark:bg-zinc-100 dark:text-zinc-900"
             )}
           >
             บันทึก

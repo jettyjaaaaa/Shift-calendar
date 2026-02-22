@@ -13,6 +13,6 @@ export const colorSwatchClass: Record<ShiftColor, string> = {
   yellow: "bg-yellow-300",
   orange: "bg-orange-500",
   pink: "bg-pink-500",
-  white: "bg-white border border-zinc-300",
+  white: "bg-white border border-zinc-300 dark:border-zinc-700",
   red: "bg-red-500",
 };

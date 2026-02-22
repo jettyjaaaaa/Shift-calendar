@@ -33,7 +33,7 @@ export default function LeaveListPage() {
   const byMonth = useMemo(() => groupLeaveDays(rows), [rows]);
 
   return (
-    <div className="min-h-dvh bg-white">
+    <div className="min-h-dvh bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <div className="max-w-[520px] mx-auto px-4 pt-6 pb-32">
         <Link href="/summary" className="text-xs text-zinc-500">
           ← กลับหมายเหตุ

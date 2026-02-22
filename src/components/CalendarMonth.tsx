@@ -17,10 +17,12 @@ export function CalendarMonth({
   month,
   shiftsByDate,
   onPickDate,
+  showWeekdays = true,
 }: {
   month: dayjs.Dayjs;
   shiftsByDate: Record<string, ShiftRow[]>;
   onPickDate: (dateISO: string) => void;
+  showWeekdays?: boolean;
 }) {
   const gridStart = startOfGrid(month);
   const days = Array.from({ length: 42 }, (_, i) => gridStart.add(i, "day"));
@@ -28,13 +30,15 @@ export function CalendarMonth({
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-7 gap-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
-        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
-          <div key={d} className="py-1">
-            {d}
-          </div>
-        ))}
-      </div>
+      {showWeekdays ? (
+        <div className="grid grid-cols-7 gap-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
+            <div key={d} className="py-1">
+              {d}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-7 gap-2">
         {days.map((d) => {
@@ -63,6 +67,7 @@ export function CalendarMonth({
           return (
             <button
               key={iso}
+              data-iso={iso}
               onClick={() => onPickDate(iso)}
               type="button"
               className={clsx(
@@ -70,6 +75,7 @@ export function CalendarMonth({
                 "h-[118px] overflow-hidden p-2 pb-3",
                 "grid grid-rows-[22px_1fr]",
                 inMonth ? "opacity-100" : "opacity-50",
+                isToday ? "ring-2 ring-yellow-400" : "ring-0",
                 bgClass
               )}
             >

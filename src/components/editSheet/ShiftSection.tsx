@@ -17,14 +17,16 @@ export function ShiftSection({
 
   return (
     <>
-      <div className="mt-3 flex items-center justify-between rounded-2xl bg-zinc-100 px-4 py-3">
+      <div className="mt-3 flex items-center justify-between rounded-2xl bg-zinc-100 px-4 py-3 dark:bg-zinc-900/50">
         <div className="text-sm font-semibold">มีเวรช่วงนี้</div>
         <button
           type="button"
           onClick={() => setDraft({ enabled: !d.enabled })}
           className={clsx(
             "rounded-xl px-3 py-2 text-sm font-extrabold transition",
-            d.enabled ? "bg-white shadow-sm" : "bg-zinc-200 text-zinc-700"
+            d.enabled
+              ? "bg-white shadow-sm dark:bg-zinc-950 dark:shadow-none"
+              : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
           )}
         >
           {d.enabled ? "มี" : "ไม่มี"}
@@ -32,14 +34,21 @@ export function ShiftSection({
       </div>
 
       {!d.enabled ? (
-        <div className="mt-3 text-sm text-zinc-500">โหมดนี้จะลบเวรช่วง {periodLabel[active]}</div>
+        <div className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+          โหมดนี้จะลบเวรช่วง {periodLabel[active]}
+        </div>
       ) : (
         <>
           <div className="flex gap-2 mt-2 flex-wrap">
             <button
               type="button"
               onClick={() => setDraft({ is_ot: !d.is_ot, oncall: false })}
-              className={clsx("px-3 py-2 rounded-xl", d.is_ot ? "bg-black text-white" : "bg-zinc-100")}
+              className={clsx(
+                "px-3 py-2 rounded-xl",
+                d.is_ot
+                  ? "bg-black text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+              )}
             >
               OT
             </button>
@@ -54,7 +63,9 @@ export function ShiftSection({
               }
               className={clsx(
                 "px-3 py-2 rounded-xl",
-                d.oncall ? "bg-red-600 text-white" : "bg-zinc-100"
+                d.oncall
+                  ? "bg-red-600 text-white"
+                  : "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
               )}
             >
               oncall
@@ -71,7 +82,9 @@ export function ShiftSection({
               }
               className={clsx(
                 "px-3 py-2 rounded-xl",
-                d.swapped ? "bg-zinc-900 text-white" : "bg-zinc-100"
+                d.swapped
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
               )}
             >
               สลับเวร
@@ -89,7 +102,9 @@ export function ShiftSection({
               }
               className={clsx(
                 "px-3 py-2 rounded-xl",
-                d.bought ? "bg-emerald-600 text-white" : "bg-zinc-100"
+                d.bought
+                  ? "bg-emerald-600 text-white"
+                  : "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
               )}
             >
               ซื้อเวร
@@ -106,7 +121,12 @@ export function ShiftSection({
                   sold_price: !d.sold ? d.sold_price || SOLD_PRICE_DEFAULT : d.sold_price,
                 })
               }
-              className={clsx("px-3 py-2 rounded-xl", d.sold ? "bg-red-500 text-white" : "bg-zinc-100")}
+              className={clsx(
+                "px-3 py-2 rounded-xl",
+                d.sold
+                  ? "bg-red-500 text-white"
+                  : "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+              )}
             >
               ขายเวร
             </button>
@@ -118,13 +138,13 @@ export function ShiftSection({
                 value={d.swapped_with}
                 onChange={(e) => setDraft({ swapped_with: e.target.value })}
                 placeholder="สลับกับใคร"
-                className="mt-3 w-full rounded-2xl border px-4 py-3"
+                className="mt-3 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
               <input
                 value={d.swap_remark}
                 onChange={(e) => setDraft({ swap_remark: e.target.value })}
                 placeholder="remark เวรที่สลับมา (optional)"
-                className="mt-2 w-full rounded-2xl border px-4 py-3"
+                className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
             </>
           )}
@@ -135,7 +155,7 @@ export function ShiftSection({
                 value={d.bought_from}
                 onChange={(e) => setDraft({ bought_from: e.target.value })}
                 placeholder="ซื้อจากใคร"
-                className="mt-3 w-full rounded-2xl border px-4 py-3"
+                className="mt-3 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
               <input
                 type="number"
@@ -143,7 +163,7 @@ export function ShiftSection({
                 onChange={(e) => setDraft({ bought_price: Number(e.target.value) })}
                 step={SOLD_PRICE_STEP}
                 placeholder="ราคา"
-                className="mt-2 w-full rounded-2xl border px-4 py-3"
+                className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
             </>
           )}
@@ -154,7 +174,7 @@ export function ShiftSection({
                 value={d.sold_to}
                 onChange={(e) => setDraft({ sold_to: e.target.value })}
                 placeholder="ขายให้ใคร"
-                className="mt-3 w-full rounded-2xl border px-4 py-3"
+                className="mt-3 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
               <input
                 type="number"
@@ -162,7 +182,7 @@ export function ShiftSection({
                 onChange={(e) => setDraft({ sold_price: Number(e.target.value) })}
                 step={SOLD_PRICE_STEP}
                 placeholder="ราคา"
-                className="mt-2 w-full rounded-2xl border px-4 py-3"
+                className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
@@ -172,7 +192,7 @@ export function ShiftSection({
                       sold_price: Math.max(0, (d.sold_price || SOLD_PRICE_DEFAULT) - SOLD_PRICE_STEP),
                     })
                   }
-                  className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-extrabold"
+                  className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-extrabold text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
                 >
                   -{SOLD_PRICE_STEP}
                 </button>
@@ -183,7 +203,7 @@ export function ShiftSection({
                       sold_price: (d.sold_price || SOLD_PRICE_DEFAULT) + SOLD_PRICE_STEP,
                     })
                   }
-                  className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-extrabold"
+                  className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-extrabold text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
                 >
                   +{SOLD_PRICE_STEP}
                 </button>
@@ -200,7 +220,7 @@ export function ShiftSection({
                 className={clsx(
                   "h-10 w-10 rounded-full",
                   colorSwatchClass[c],
-                  d.color === c && "ring-2 ring-black"
+                  d.color === c && "ring-2 ring-black dark:ring-zinc-100"
                 )}
               />
             ))}
@@ -210,7 +230,7 @@ export function ShiftSection({
             value={d.note}
             onChange={(e) => setDraft({ note: e.target.value })}
             placeholder="โน้ต/หมายเหตุ (optional)"
-            className="mt-3 w-full min-h-[90px] rounded-2xl border px-4 py-3"
+            className="mt-3 w-full min-h-[90px] rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
           />
         </>
       )}
