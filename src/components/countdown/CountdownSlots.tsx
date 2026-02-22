@@ -30,6 +30,13 @@ export function CountdownSlots({ onChanged }: { onChanged?: () => void }) {
     return () => window.clearInterval(id);
   }, []);
 
+  const togetherDays = useMemo(() => {
+    const start = dayjs("2025-12-15");
+    const today = dayjs(todayISO);
+    const diff = today.startOf("day").diff(start.startOf("day"), "day");
+    return Math.max(0, diff + 1);
+  }, [todayISO]);
+
   useEffect(() => {
     if (!menuSlot) return;
 
@@ -155,7 +162,12 @@ export function CountdownSlots({ onChanged }: { onChanged?: () => void }) {
 
   return (
     <div ref={rootRef} className="space-y-2">
-      <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Countdown</div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Countdown</div>
+        <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+          {togetherDays} days and still going 🤍
+        </div>
+      </div>
 
       {([1, 2] as CountdownSlot[]).map((slot) => {
         const row = bySlot.get(slot);
