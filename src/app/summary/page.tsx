@@ -11,11 +11,13 @@ import { computeSummaryData, type SummaryShiftRow } from "@/components/summary/s
 
 export default function SummaryPage() {
   const [month, setMonth] = useState(() => dayjs());
+  const [ready, setReady] = useState(false);
   const [rows, setRows] = useState<SummaryShiftRow[]>([]);
   const [leaveRemain, setLeaveRemain] = useState<number>(0);
 
   useEffect(() => {
     setMonth(dayjs());
+    setReady(true);
   }, []);
 
   const load = useCallback(async () => {
@@ -44,14 +46,19 @@ export default function SummaryPage() {
   }, [month]);
 
   useEffect(() => {
+    if (!ready) return;
     void load();
     void loadLeave();
-  }, [load, loadLeave]);
+  }, [load, loadLeave, ready]);
 
   const data = useMemo(() => computeSummaryData(rows), [rows]);
 
   const prev = () => setMonth((m) => m.subtract(1, "month"));
   const next = () => setMonth((m) => m.add(1, "month"));
+
+  if (!ready) {
+    return <div className="min-h-dvh bg-white" />;
+  }
 
   return (
     <div className="min-h-dvh bg-white">

@@ -15,16 +15,22 @@ const EditSheet = dynamic(() => import("@/components/EditSheet").then((m) => m.E
 
 export default function HomePage() {
   const [month, setMonth] = useState(() => dayjs().startOf("month"));
+  const [ready, setReady] = useState(false);
   const [rows, setRows] = useState<ShiftRow[]>([]);
   const [pickedDate, setPickedDate] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    // Ensure we use the device's current date on (re)open.
+    // This avoids showing a deploy/build-time date from pre-rendered HTML.
     setMonth(dayjs().startOf("month"));
+    setReady(true);
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
+
     let cancelled = false;
 
     (async () => {
@@ -52,7 +58,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [month, reloadKey]);
+  }, [month, ready, reloadKey]);
 
   const shiftsByDate = useMemo(() => {
     const map: Record<string, ShiftRow[]> = {};
@@ -79,6 +85,10 @@ export default function HomePage() {
   const handleSaved = () => {
     setReloadKey((k) => k + 1);
   };
+
+  if (!ready) {
+    return <div className="min-h-dvh bg-zinc-50" />;
+  }
 
   return (
     <div className="min-h-dvh bg-zinc-50">

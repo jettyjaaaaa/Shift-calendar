@@ -40,7 +40,7 @@ export function CalendarMonth({
         {days.map((d) => {
           const iso = d.format("YYYY-MM-DD");
           const inMonth = d.month() === month.month();
-          const items = shiftsByDate[iso] ?? [];
+          const items = inMonth ? (shiftsByDate[iso] ?? []) : [];
 
           const byPeriod = new Map<ShiftPeriod, ShiftRow>();
           for (const it of items) byPeriod.set(it.period, it);
