@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 export const metadata: Metadata = {
   manifest: "/manifest.json",
@@ -28,7 +29,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        <PullToRefresh />
+        {children}
+      </body>
     </html>
   );
 }
