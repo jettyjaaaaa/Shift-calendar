@@ -9,6 +9,40 @@ import { TradeCard } from "@/components/summary/TradeCard";
 import { OncallCard } from "@/components/summary/OncallCard";
 import { computeSummaryData, type SummaryShiftRow } from "@/components/summary/summaryData";
 
+function IconChevronLeft(props: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props.className}
+      aria-hidden="true"
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function IconChevronRight(props: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props.className}
+      aria-hidden="true"
+    >
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  );
+}
+
 export default function SummaryPage() {
   const [month, setMonth] = useState(() => dayjs());
   const [ready, setReady] = useState(false);
@@ -65,10 +99,13 @@ export default function SummaryPage() {
       <div className="max-w-[520px] mx-auto px-4 pt-6 pb-24">
         <div className="flex items-center justify-between">
           <button
+            type="button"
             onClick={prev}
-            className="px-3 py-2 rounded-xl bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+            className="h-10 w-10 rounded-xl bg-zinc-100 grid place-items-center text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+            aria-label="ก่อนหน้า"
+            title="ก่อนหน้า"
           >
-            ก่อนหน้า
+            <IconChevronLeft className="h-5 w-5" />
           </button>
 
           <div className="text-center">
@@ -77,10 +114,13 @@ export default function SummaryPage() {
           </div>
 
           <button
+            type="button"
             onClick={next}
-            className="px-3 py-2 rounded-xl bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+            className="h-10 w-10 rounded-xl bg-zinc-100 grid place-items-center text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+            aria-label="ถัดไป"
+            title="ถัดไป"
           >
-            ถัดไป
+            <IconChevronRight className="h-5 w-5" />
           </button>
         </div>
 

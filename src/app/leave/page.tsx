@@ -7,6 +7,23 @@ import type { LeaveDayRow } from "@/components/leave/leaveData";
 import { groupLeaveDays } from "@/components/leave/leaveData";
 import { LeaveMonthSection } from "@/components/leave/LeaveMonthSection";
 
+function IconChevronLeft(props: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props.className}
+      aria-hidden="true"
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
 export default function LeaveListPage() {
   const [rows, setRows] = useState<LeaveDayRow[]>([]);
 
@@ -35,14 +52,21 @@ export default function LeaveListPage() {
   return (
     <div className="min-h-dvh bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <div className="max-w-[520px] mx-auto px-4 pt-6 pb-32">
-        <Link href="/summary" className="text-xs text-zinc-500">
-          ← กลับหมายเหตุ
-        </Link>
+        <div>
+          <Link
+            href="/summary"
+            className="h-10 w-10 rounded-xl bg-zinc-100 grid place-items-center text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+            aria-label="กลับหมายเหตุ"
+            title="กลับหมายเหตุ"
+          >
+            <IconChevronLeft className="h-5 w-5" />
+          </Link>
+        </div>
 
         <h1 className="text-xl font-bold mt-3">วันลาพักผ่อนทั้งหมด</h1>
 
         {byMonth.length === 0 ? (
-          <div className="text-zinc-400 mt-4">ยังไม่มีวันลา</div>
+          <div className="text-zinc-400 dark:text-zinc-500 mt-4">ยังไม่มีวันลา</div>
         ) : (
           <div className="mt-4 space-y-6">
             {byMonth.map((g) => (
