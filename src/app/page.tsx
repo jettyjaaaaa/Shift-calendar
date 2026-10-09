@@ -8,6 +8,7 @@ import { CalendarMonth } from "@/components/CalendarMonth";
 import { CalendarHeader } from "@/components/CalendarHeader";
 import { CalendarLegend } from "@/components/CalendarLegend";
 import { useMonthlyShifts } from "@/hooks/useMonthlyShifts";
+import { parseShiftNote } from "@/lib/shiftNoteMeta";
 import type { ShiftRow } from "@/lib/types";
 
 const EditSheet = dynamic(() => import("@/components/EditSheet").then((m) => m.EditSheet), {
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [pickedDate, setPickedDate] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [showWorkingShifts, setShowWorkingShifts] = useState(false);
 
   useEffect(() => {
     // Ensure we use the device's current date on (re)open.
@@ -48,6 +50,22 @@ export default function HomePage() {
     if (!pickedDate) return [];
     return shiftsByDate[pickedDate] ?? [];
   }, [pickedDate, shiftsByDate]);
+
+  const displayedShiftsByDate = useMemo(() => {
+    if (!showWorkingShifts) return shiftsByDate;
+
+    return Object.fromEntries(
+      Object.entries(shiftsByDate).map(([date, shifts]) => [
+        date,
+        shifts.filter(
+          (shift) =>
+            shift.day_type !== "shift" ||
+            (!shift.sold &&
+              (!shift.swapped || parseShiftNote(shift.note).meta.swap_direction === "in"))
+        ),
+      ])
+    );
+  }, [shiftsByDate, showWorkingShifts]);
 
   const pickDate = (iso: string) => {
     setPickedDate(iso);
@@ -78,20 +96,49 @@ export default function HomePage() {
 
         <section className="mt-3 rounded-[22px] border border-amber-100/90 bg-white/85 p-2 shadow-[0_18px_45px_-30px_rgba(120,53,15,0.38)] backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/75 min-[480px]:mt-4 min-[480px]:rounded-[28px] min-[480px]:p-3 sm:p-4">
           <div className="mb-2 flex items-start justify-between gap-2 min-[480px]:mb-3 min-[480px]:gap-3">
-            <div>
+            <div className="min-w-0 flex-1">
               <h2 className="text-sm font-black min-[480px]:text-base">
                 เลือกวันที่เพื่อจัดการเวร
               </h2>
               <p className="mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 min-[480px]:text-xs">
-                แตะวันที่เพื่อดูหรือแก้ไขรายละเอียด
+                {showWorkingShifts
+                  ? "แสดงเฉพาะเวรที่ต้องขึ้น แตะวันที่เพื่อดูหรือแก้ไขเวรทั้งหมด"
+                  : "แตะวันที่เพื่อดูหรือแก้ไขรายละเอียด"}
               </p>
+              {loading ? <span className="status-pill mt-1 inline-flex">กำลังโหลด…</span> : null}
+              {error ? (
+                <span className="status-pill mt-1 inline-flex text-rose-600">โหลดไม่สำเร็จ</span>
+              ) : null}
             </div>
-            {loading ? <span className="status-pill">กำลังโหลด…</span> : null}
-            {error ? <span className="status-pill text-rose-600">โหลดไม่สำเร็จ</span> : null}
+            <button
+              type="button"
+              onClick={() => setShowWorkingShifts((current) => !current)}
+              role="switch"
+              aria-checked={showWorkingShifts}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg py-1 text-[10px] font-bold leading-tight text-zinc-600 transition active:scale-[0.97] dark:text-zinc-300 min-[480px]:text-[11px]"
+            >
+              <span className="whitespace-nowrap">เวรที่ต้องขึ้น</span>
+              <span
+                aria-hidden="true"
+                className={`relative h-6 w-11 rounded-full transition-colors ${
+                  showWorkingShifts ? "bg-amber-400" : "bg-zinc-300 dark:bg-zinc-700"
+                }`}
+              >
+                <span
+                  className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                    showWorkingShifts ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </span>
+            </button>
           </div>
-          <CalendarLegend />
+          <CalendarLegend showWorkingShifts={showWorkingShifts} />
           <div className="mt-1.5 min-[480px]:mt-3">
-            <CalendarMonth month={month} shiftsByDate={shiftsByDate} onPickDate={pickDate} />
+            <CalendarMonth
+              month={month}
+              shiftsByDate={displayedShiftsByDate}
+              onPickDate={pickDate}
+            />
           </div>
         </section>
       </div>
